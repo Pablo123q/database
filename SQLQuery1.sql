@@ -1,27 +1,26 @@
-
-CREATE DATABASE Biblioteka_new
+CREATE DATABASE Biblioteka_new_in_home
 ON
 PRIMARY
 (
-    NAME = 'Biblioteka_new_data',
-    FILENAME = 'C:\DB\Baza_biblioteka_new.mdf',
+    NAME = 'Biblioteka_new_in_home',
+    FILENAME = 'C:\DB\Biblioteka_new_in_home.mdf',
     SIZE = 10MB,
     MAXSIZE = 20MB,
     FILEGROWTH = 2MB
 )
 LOG ON
 (
-    NAME = 'Biblioteka_new_log',
-    FILENAME = 'C:\DB\Baza_biblioteka.ldf',
+    NAME = 'Biblioteka_new_in_home_log',
+    FILENAME = 'C:\DB\Biblioteka_new_in_home_log.ldf',
     SIZE = 10MB,
     MAXSIZE = 20MB,
     FILEGROWTH = 2MB
-);
+)
 
--- Użycie nowo utworzonej bazy danych
+
 USE Biblioteka_new;
 
--- Tworzenie tabeli books
+
 CREATE TABLE dbo.books (
     id INT IDENTITY(1,1) PRIMARY KEY,
     title NVARCHAR(200) NOT NULL,
@@ -31,73 +30,86 @@ CREATE TABLE dbo.books (
     isbn NVARCHAR(20) UNIQUE,
     status BIT NOT NULL,
     audit_id INT NULL
-);
+)
 
--- Tworzenie tabeli authors
 CREATE TABLE dbo.authors (
     id INT IDENTITY(1,1) PRIMARY KEY,
     firstName NVARCHAR(100) NOT NULL,
     lastName NVARCHAR(100) NOT NULL,
-    birthDate DATE NULL
+    birthDate DATE NULL,
+    country_id INT NOT NULL DEFAULT 1,  
+    FOREIGN KEY (country_id) REFERENCES dbo.country(country_id)
 );
 
--- Tworzenie tabeli bookAuthor (poprawiono przecinek i nazwy FK)
+CREATE TABLE dbo.country (
+    country_id INT PRIMARY KEY IDENTITY(1,1),
+    country NVARCHAR(100) NOT NULL,
+    country_short CHAR(3) NOT NULL
+);
+
 CREATE TABLE dbo.bookAuthor (
-    bookID INT,
+   -- author_book_id INT IDENTITY(1,1) PRIMARY KEY,
+	bookID INT,
     authorID INT,
-    CONSTRAINT FK_book FOREIGN KEY (bookID) REFERENCES dbo.books(id),
-    CONSTRAINT FK_booksAuthors_authors FOREIGN KEY (authorID) REFERENCES dbo.authors(id),
-    PRIMARY KEY (bookID, authorID) -- Relacja wiele do wielu
-);
+    FOREIGN KEY (bookID) REFERENCES dbo.books(id),
+    FOREIGN KEY (authorID) REFERENCES dbo.authors(id),
+    CONSTRAINT PK_bookAuthor_authorID_bookID PRIMARY KEY CLUSTERED(authorID,bookID)
+)
 
--- Tworzenie tabeli users
+
 CREATE TABLE dbo.users (
     id INT IDENTITY(1,1) PRIMARY KEY,
     fullName NVARCHAR(100) NOT NULL,
     email NVARCHAR(250) NOT NULL UNIQUE,
-    userType NVARCHAR(20) NULL
-);
+    userType NVARCHAR(20) NULL,
+	rola VARCHAR(20) CHECK (rola in('admin','librarian','user')),
+)
 
--- Tworzenie tabeli customers
+
 CREATE TABLE dbo.customers (
     id INT IDENTITY(1,1) PRIMARY KEY,
     fullName NVARCHAR(100) NOT NULL,
     email NVARCHAR(200) NOT NULL UNIQUE,
-    birthDate DATE NULL
-);
+    birthDate DATE NULL,
+	
+)
 
--- Tworzenie tabeli rentals
+
+ALTER TABLE dbo.users
+ADD CONSTRAINT Df_Doc_Exz_rola CHECK (rola in('admin','librarian','user'))
+GO
+
 CREATE TABLE dbo.rentals (
     id INT IDENTITY(1,1) PRIMARY KEY,
     bookID INT NOT NULL,
     customerID INT NOT NULL,
     rentalDate DATE NOT NULL,
     returnDate DATE NULL,
-    status NVARCHAR(20) NOT NULL, -- np. "Wypożyczona", "Zwrócona"
+    [status] NVARCHAR(20) CHECK ([status] in ('wypozyczona','zwrocona','przetrzymana')) DEFAULT 'wypozyczona', 
     CONSTRAINT FK_rentals_books FOREIGN KEY (bookID) REFERENCES dbo.books(id),
     CONSTRAINT FK_rentals_customers FOREIGN KEY (customerID) REFERENCES dbo.customers(id)
-);
+)
 
--- Tworzenie tabeli reservations
+
 CREATE TABLE dbo.reservations (
     id INT IDENTITY(1,1) PRIMARY KEY,
     bookID INT NOT NULL,
     customerID INT NOT NULL,
     reservationDate DATE NOT NULL,
-    status NVARCHAR(20) NOT NULL, -- np. "Aktywna", "Anulowana"
+    status NVARCHAR(20) NOT NULL, 
     CONSTRAINT FK_reservations_books FOREIGN KEY (bookID) REFERENCES dbo.books(id),
     CONSTRAINT FK_reservations_customers FOREIGN KEY (customerID) REFERENCES dbo.customers(id)
-);
+)
 
--- Tworzenie tabeli penalties
 CREATE TABLE dbo.penalties (
     id INT IDENTITY(1,1) PRIMARY KEY,
     customerID INT NOT NULL,
     amount DECIMAL(10,2) NOT NULL,
     reason NVARCHAR(255) NOT NULL,
-    status NVARCHAR(20) NOT NULL, -- np. "Zapłacona", "Nieopłacona"
+    status NVARCHAR(20) NOT NULL,
     CONSTRAINT FK_penalties_customers FOREIGN KEY (customerID) REFERENCES dbo.customers(id)
-);
+)
 
--- Sprawdzenie tabel w bazie
+
 SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_CATALOG = 'Biblioteka_new';
+
