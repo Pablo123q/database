@@ -1,0 +1,33 @@
+--utworz uzytkownika czyyelnik z haslem i przydiel mi dostep tylko do odzytu danych z tabeli books
+
+CREATE LOGIN czytelnik WITH PASSWORD ='haslo';
+use biblioteka_gr2_apha;
+CREATE USER czytelnik for LOGIN czytelnik;
+GRANT SELECT on dbo.books TO czytelnik;
+
+
+
+-- Stworz role bibliotekarz ktora ma pelne orawa di tabel book, authors, authorsBooks
+CREATE ROLE Bibliotekarz;
+GRANT SELECT, INSERT, DELETE, UPDATE on dbo.books to Bibliotekarz
+
+
+EXEC sp_addrolemember 'Bibliotekarz','czytelnik'
+
+-- zalogij sie jako czytelnik 
+select USER_NAME()
+select * from sys.database_principals
+select * from sys.database_role_members drm
+INNER JOIN sys.database_principals sp on sp.principal_id = drm.role_principal_id
+where drm.member_principal_id = USER_ID('czytelnik')
+
+-- anty sql-injection
+DECLARE @password  NVARCHAR(100) = 'adrian_dawidek4';
+DECLARE @username  NVARCHAR(100)= 'tralala''OR 1=1 --';
+DECLARE @sql NVARCHAR(max);
+
+SET @sql = 'SELECT * FROM dbo.[user]
+WHERE username = ''' +@username+ ''' AND password_hash = '''+@password+''''
+
+PRINT @sql
+EXEC (@sql)
